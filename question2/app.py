@@ -4,11 +4,12 @@ from textblob import TextBlob
 
 import csv
 import pandas as pd
+import re
 import string
 from nltk.corpus import stopwords
 import sklearn
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix
 
@@ -31,7 +32,7 @@ def home():
       return " ".join(text)
     data['text'] = data['text'].apply(text_processing)
 
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(max_features=3000)
     vectors = vectorizer.fit_transform(data['text'])
     features = vectors
 
@@ -42,10 +43,10 @@ def home():
         return 1
     data['label'] = data['label'].apply(categorize)
 
-    X_train, X_test, y_train, y_test = train_test_split(features, data['label'], test_size=0.15, random_state=111)
+    X_train, X_test, y_train, y_test = train_test_split(features, data['label'], test_size=0.30, random_state=111)
 
-    lr = LogisticRegression(solver='liblinear', penalty='l1')
-    lr.fit(X_train,y_train)
+    rfc=RandomForestClassifier(n_estimators=50,criterion='entropy')
+    rfc.fit(X_train,y_train)
 
     email_text = email_text.translate(str.maketrans('','',string.punctuation))
     email_text = [word for word in email_text.split() if word.lower() not in stopwords.words('english')]
@@ -53,7 +54,7 @@ def home():
     to_check =[]
     to_check.append(email_text)
     feature = vectorizer.transform(to_check)
-    prediction = lr.predict(feature)
+    prediction = rfc.predict(feature)
     if(prediction == 0.):
         message='Not Spam'
     else:
